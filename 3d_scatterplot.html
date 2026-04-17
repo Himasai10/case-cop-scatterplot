@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GreenPlate — Menu Optimization Analysis</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: 'Space Grotesk', sans-serif;
+    background: #f4f3f0;
+    color: #2c2c2a;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    padding: 2rem 1.5rem;
+  }
+  .header { text-align: center; margin-bottom: 1.5rem; max-width: 700px; }
+  .badge {
+    display: inline-block;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.65rem; font-weight: 500;
+    letter-spacing: 0.12em; text-transform: uppercase;
+    color: #1D9E75; background: rgba(29,158,117,0.1);
+    border: 1px solid rgba(29,158,117,0.2);
+    border-radius: 100px; padding: 4px 14px; margin-bottom: 0.75rem;
+  }
+  h1 { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.03em; color: #1a1a1a; margin-bottom: 0.35rem; line-height: 1.2; }
+  .subtitle { font-size: 0.9rem; color: #888; font-weight: 400; }
+  .controls-row { display: flex; align-items: center; justify-content: space-between; width: 100%; max-width: 820px; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 8px; }
+  .legend { display: flex; gap: 1.25rem; font-size: 0.8rem; color: #555; font-weight: 500; }
+  .legend-item { display: flex; align-items: center; gap: 6px; }
+  .dot { width: 12px; height: 12px; border-radius: 3px; }
+  .dot.s1 { background: #22c55e; }
+  .dot.s2 { background: #eab308; }
+  .dot.s3 { background: #ef4444; }
+  .hint { font-size: 0.72rem; color: #aaa; font-family: 'JetBrains Mono', monospace; letter-spacing: 0.02em; }
+  #container {
+    width: 100%; max-width: 820px; height: 580px;
+    border-radius: 16px; overflow: hidden;
+    border: 1px solid rgba(0,0,0,0.08); background: #fafaf8;
+    position: relative;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  }
+  #tooltip {
+    position: fixed; display: none; background: #fff;
+    border: 1px solid rgba(0,0,0,0.1); border-radius: 10px;
+    padding: 10px 14px; font-size: 0.78rem; color: #333;
+    pointer-events: none; z-index: 100; line-height: 1.6;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  #tooltip strong { color: #1a1a1a; font-weight: 600; }
+  .metric-row { display: flex; gap: 12px; width: 100%; max-width: 820px; margin-top: 1rem; }
+  .metric-card {
+    flex: 1; background: #fff; border: 1px solid rgba(0,0,0,0.06);
+    border-radius: 12px; padding: 14px 16px;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.03);
+  }
+  .metric-label { font-size: 0.68rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; color: #999; margin-bottom: 4px; }
+  .metric-value { font-size: 1.3rem; font-weight: 700; letter-spacing: -0.02em; }
+  .metric-value.green { color: #16a34a; }
+  .metric-value.blue { color: #2563eb; }
+  .metric-sub { font-size: 0.72rem; color: #aaa; margin-top: 2px; }
+</style>
+</head>
+<body>
+  <div class="header">
+    <div class="badge">Drexel Team 10 — Phillywide Case Competition</div>
+    <h1>20 menu combos scored across 3 dimensions</h1>
+    <p class="subtitle">Emissions, cost, and protein tradeoffs — why Combo 4 wins</p>
+  </div>
+  <div class="controls-row">
+    <div class="legend">
+      <div class="legend-item"><span class="dot s1"></span> Score 1 — optimal</div>
+      <div class="legend-item"><span class="dot s2"></span> Score 2 — acceptable</div>
+      <div class="legend-item"><span class="dot s3"></span> Score 3 — tradeoffs</div>
+    </div>
+    <span class="hint">drag to rotate · scroll to zoom</span>
+  </div>
+  <div id="container"></div>
+  <div id="tooltip"></div>
+  <div class="metric-row">
+    <div class="metric-card"><div class="metric-label">Emissions reduction</div><div class="metric-value green">-48.2%</div><div class="metric-sub">3,049 → 1,579 kg CO2e</div></div>
+    <div class="metric-card"><div class="metric-label">Weekly cost change</div><div class="metric-value green">-$57.80</div><div class="metric-sub">$895 → $837 per week</div></div>
+    <div class="metric-card"><div class="metric-label">Protein maintained</div><div class="metric-value blue">+6.1%</div><div class="metric-sub">52,400 → 55,600 g/week</div></div>
+    <div class="metric-card"><div class="metric-label">Items changed</div><div class="metric-value" style="color:#1a1a1a;">5 of 28</div><div class="metric-sub">82% of menu preserved</div></div>
+  </div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+const raw = [
+  {l:'Baseline',e:3049,c:895,p:52400,s:3},
+  {l:'1',e:2669,c:900,p:52800,s:3},
+  {l:'2',e:2238,c:877,p:53200,s:2},
+  {l:'3',e:1878,c:845,p:54900,s:2},
+  {l:'4',e:1579,c:836,p:55600,s:1},
+  {l:'5',e:1433,c:826,p:56200,s:1},
+  {l:'6',e:1353,c:816,p:56800,s:1},
+  {l:'7',e:1328,c:818,p:57300,s:1},
+  {l:'8',e:1257,c:811,p:57900,s:1},
+  {l:'9',e:1168,c:806,p:58200,s:1},
+  {l:'10',e:1168,c:801,p:58600,s:1},
+  {l:'11',e:1083,c:790,p:59100,s:1},
+  {l:'12',e:1011,c:766,p:59800,s:2},
+  {l:'13',e:987,c:768,p:60100,s:2},
+  {l:'14',e:965,c:783,p:60300,s:2},
+  {l:'15',e:908,c:758,p:60900,s:2},
+  {l:'16',e:874,c:770,p:61200,s:2},
+  {l:'17',e:869,c:754,p:61700,s:3},
+  {l:'18',e:839,c:743,p:61900,s:3},
+  {l:'19',e:838,c:760,p:62100,s:3},
+  {l:'20',e:843,c:780,p:62400,s:3}
+];
+
+const colors = {1: 0x22c55e, 2: 0xeab308, 3: 0xef4444};
+const colorHex = {1: '#22c55e', 2: '#eab308', 3: '#ef4444'};
+const eMin=750, eMax=3150, cMin=720, cMax=920, pMin=51500, pMax=63500;
+const S = 8;
+function norm(v, mn, mx) { return ((v - mn) / (mx - mn) - 0.5) * S; }
+const half = S / 2;
+
+const container = document.getElementById('container');
+const w = container.clientWidth, h = container.clientHeight;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, w / h, 0.1, 200);
+const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+renderer.setSize(w, h);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setClearColor(0xfafaf8, 1);
+container.appendChild(renderer.domElement);
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.8));
+const dl = new THREE.DirectionalLight(0xffffff, 0.4);
+dl.position.set(6, 10, 8); scene.add(dl);
+
+function L(x1,y1,z1,x2,y2,z2,c,o) {
+  const m = new THREE.LineBasicMaterial({ color: c||0x999999, transparent: true, opacity: o||1 });
+  const g = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x1,y1,z1), new THREE.Vector3(x2,y2,z2)]);
+  scene.add(new THREE.Line(g, m));
+}
+
+[[-half,-half,-half,half,-half,-half],[-half,-half,-half,-half,half,-half],[-half,-half,-half,-half,-half,half],
+ [half,-half,-half,half,-half,half],[half,-half,-half,half,half,-half],[-half,half,-half,half,half,-half],
+ [-half,half,-half,-half,half,half],[-half,-half,half,half,-half,half],[-half,-half,half,-half,half,half],
+ [half,half,-half,half,half,half],[half,-half,half,half,half,half],[-half,half,half,half,half,half]
+].forEach(e => L(e[0],e[1],e[2],e[3],e[4],e[5], 0x888888, 0.45));
+
+const st = 5;
+for (let i = 1; i < st; i++) {
+  const t = -half + (S * i / st);
+  L(t,-half,-half,t,-half,half,0xaaaaaa,0.3);
+  L(-half,-half,t,half,-half,t,0xaaaaaa,0.3);
+  L(-half,t,-half,half,t,-half,0xaaaaaa,0.3);
+  L(-half,t,-half,-half,t,half,0xaaaaaa,0.3);
+  L(-half,-half,t,-half,half,t,0xaaaaaa,0.3);
+  L(t,-half,-half,t,half,-half,0xaaaaaa,0.3);
+  L(t,-half,half,t,half,half,0xaaaaaa,0.15);
+  L(half,-half,t,half,half,t,0xaaaaaa,0.15);
+  L(half,t,-half,half,t,half,0xaaaaaa,0.15);
+}
+
+function spr(text, pos, size, color, bold) {
+  const c = document.createElement('canvas');
+  const x = c.getContext('2d');
+  c.width = 512; c.height = 96;
+  x.fillStyle = color || '#666';
+  x.font = (bold ? '700' : '500') + ' 38px Space Grotesk, sans-serif';
+  x.textAlign = 'center'; x.textBaseline = 'middle';
+  x.fillText(text, 256, 48);
+  const t = new THREE.CanvasTexture(c);
+  const m = new THREE.SpriteMaterial({ map: t, transparent: true });
+  const s = new THREE.Sprite(m);
+  s.position.copy(pos); s.scale.set(size, size * 0.19, 1);
+  scene.add(s);
+}
+
+spr('Emissions (kg CO2e)', new THREE.Vector3(0, -half - 1.15, -half - 0.5), 5.5, '#555', true);
+spr('Protein (g/week)', new THREE.Vector3(-half - 0.5, -half - 1.15, 0), 5.5, '#555', true);
+spr('Cost ($)', new THREE.Vector3(-half - 1.5, 0.3, -half - 0.5), 3.8, '#555', true);
+
+[1000,1500,2000,2500,3000].forEach(v => spr(String(v), new THREE.Vector3(norm(v,eMin,eMax), -half-0.6, -half-0.2), 2.8, '#888'));
+[750,800,850,900].forEach(v => spr('$'+v, new THREE.Vector3(-half-0.8, norm(v,cMin,cMax), -half-0.2), 2.4, '#888'));
+[53,56,59,62].forEach(v => spr(v+'k', new THREE.Vector3(-half-0.6, -half-0.6, norm(v*1000,pMin,pMax)), 2.4, '#888'));
+
+const pts = [];
+const rc = new THREE.Raycaster();
+const ms = new THREE.Vector2();
+
+raw.forEach(d => {
+  const x = norm(d.e,eMin,eMax), y = norm(d.c,cMin,cMax), z = norm(d.p,pMin,pMax);
+  const isKey = d.l==='Baseline'||d.l==='4';
+  const r = isKey ? 0.18 : 0.13;
+  const geo = new THREE.SphereGeometry(r, 24, 24);
+  const mat = new THREE.MeshPhongMaterial({
+    color: colors[d.s], emissive: colors[d.s], emissiveIntensity: 0.15,
+    shininess: 40, transparent: !isKey, opacity: isKey ? 1 : 0.85
+  });
+  const m = new THREE.Mesh(geo, mat);
+  m.position.set(x, y, z); m.userData = d;
+  scene.add(m); pts.push(m);
+
+  const dm = new THREE.LineBasicMaterial({ color: colors[d.s], transparent: true, opacity: isKey ? 0.4 : 0.15 });
+  const dg = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(x,-half,z), new THREE.Vector3(x,y,z)]);
+  scene.add(new THREE.Line(dg, dm));
+
+  if (isKey) {
+    const label = d.l==='4'?'COMBO 4':'BASELINE';
+    const bg = d.l==='4'?'#22c55e':'#ef4444';
+    const cv = document.createElement('canvas');
+    const cx = cv.getContext('2d');
+    cv.width = 320; cv.height = 80;
+    cx.fillStyle = bg;
+    const bw=200,bh=44,bx=60,by=18,br=10;
+    cx.beginPath();
+    cx.moveTo(bx+br,by); cx.lineTo(bx+bw-br,by);
+    cx.quadraticCurveTo(bx+bw,by,bx+bw,by+br);
+    cx.lineTo(bx+bw,by+bh-br);
+    cx.quadraticCurveTo(bx+bw,by+bh,bx+bw-br,by+bh);
+    cx.lineTo(bx+br,by+bh);
+    cx.quadraticCurveTo(bx,by+bh,bx,by+bh-br);
+    cx.lineTo(bx,by+br);
+    cx.quadraticCurveTo(bx,by,bx+br,by);
+    cx.closePath(); cx.fill();
+    cx.fillStyle = '#fff';
+    cx.font = '700 26px Space Grotesk, sans-serif';
+    cx.textAlign = 'center'; cx.textBaseline = 'middle';
+    cx.fillText(label, 160, 41);
+    const tx = new THREE.CanvasTexture(cv);
+    const sm = new THREE.SpriteMaterial({ map: tx, transparent: true });
+    const sp = new THREE.Sprite(sm);
+    sp.position.set(x, y + 0.55, z);
+    sp.scale.set(2.6, 0.65, 1);
+    scene.add(sp);
+
+    const sg = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(x,y+r+0.04,z), new THREE.Vector3(x,y+0.38,z)
+    ]);
+    scene.add(new THREE.Line(sg, new THREE.LineBasicMaterial({ color: parseInt(bg.replace('#',''),16), transparent: true, opacity: 0.6 })));
+  }
+});
+
+let drag=false, px=0, py=0, th=Math.PI/4, ph=Math.PI/5.5, rad=13;
+function uc() {
+  camera.position.x = rad*Math.cos(ph)*Math.sin(th);
+  camera.position.y = rad*Math.sin(ph);
+  camera.position.z = rad*Math.cos(ph)*Math.cos(th);
+  camera.lookAt(0,0,0);
+}
+uc();
+
+const el = renderer.domElement;
+el.style.cursor = 'grab';
+el.addEventListener('pointerdown', e => { drag=true; el.style.cursor='grabbing'; px=e.clientX; py=e.clientY; });
+window.addEventListener('pointerup', () => { drag=false; el.style.cursor='grab'; });
+window.addEventListener('pointermove', e => {
+  if (!drag) return;
+  th -= (e.clientX-px)*0.005;
+  ph += (e.clientY-py)*0.005;
+  ph = Math.max(-Math.PI/2.5, Math.min(Math.PI/2.5, ph));
+  px=e.clientX; py=e.clientY; uc();
+});
+el.addEventListener('wheel', e => { e.preventDefault(); rad+=e.deltaY*0.008; rad=Math.max(5,Math.min(22,rad)); uc(); }, {passive:false});
+
+const tip = document.getElementById('tooltip');
+el.addEventListener('pointermove', e => {
+  if (drag) { tip.style.display='none'; return; }
+  const r = el.getBoundingClientRect();
+  ms.x = ((e.clientX-r.left)/r.width)*2-1;
+  ms.y = -((e.clientY-r.top)/r.height)*2+1;
+  rc.setFromCamera(ms, camera);
+  const h = rc.intersectObjects(pts);
+  if (h.length > 0) {
+    const d = h[0].object.userData;
+    const n = d.l==='Baseline'?'Baseline':'Combo '+d.l;
+    const sc = d.s===1?'Optimal':d.s===2?'Acceptable':'Tradeoffs';
+    tip.innerHTML =
+      '<strong style="color:'+colorHex[d.s]+'">'+n+'</strong><br>'+
+      '<span style="color:#999;font-size:0.7rem;">Score '+d.s+' — '+sc+'</span><br>'+
+      '<span style="color:#666;">Emissions:</span> '+d.e.toLocaleString()+' kg CO2e<br>'+
+      '<span style="color:#666;">Cost:</span> $'+d.c+'/week<br>'+
+      '<span style="color:#666;">Protein:</span> '+d.p.toLocaleString()+' g/week';
+    tip.style.display='block';
+    tip.style.left=(e.clientX+14)+'px';
+    tip.style.top=(e.clientY-12)+'px';
+  } else { tip.style.display='none'; }
+});
+
+(function animate() { requestAnimationFrame(animate); renderer.render(scene,camera); })();
+
+window.addEventListener('resize', () => {
+  const nw=container.clientWidth, nh=container.clientHeight;
+  camera.aspect=nw/nh; camera.updateProjectionMatrix();
+  renderer.setSize(nw,nh);
+});
+</script>
+</body>
+</html>
