@@ -82,7 +82,7 @@
   <div id="container"></div>
   <div id="tooltip"></div>
   <div class="metric-row">
-    <div class="metric-card"><div class="metric-label">Emissions reduction</div><div class="metric-value green">-48.2%</div><div class="metric-sub">3,049 → 1,579 kg CO2e</div></div>
+    <div class="metric-card"><div class="metric-label">Emissions reduction</div><div class="metric-value green" id="m-emissions"></div><div class="metric-sub" id="m-emissions-sub"></div></div>
     <div class="metric-card"><div class="metric-label">Weekly cost change</div><div class="metric-value green">-$57.80</div><div class="metric-sub">$895 → $837 per week</div></div>
     <div class="metric-card"><div class="metric-label">Protein maintained</div><div class="metric-value blue">+6.1%</div><div class="metric-sub">52,400 → 55,600 g/week</div></div>
     <div class="metric-card"><div class="metric-label">Items changed</div><div class="metric-value" style="color:#1a1a1a;">5 of 28</div><div class="metric-sub">82% of menu preserved</div></div>
@@ -95,7 +95,7 @@ const raw = [
   {l:'1',e:2669,c:900,p:52800,s:3},
   {l:'2',e:2238,c:877,p:53200,s:2},
   {l:'3',e:1878,c:845,p:54900,s:2},
-  {l:'4',e:1579,c:836,p:55600,s:1},
+  {l:'4',e:1768,c:836,p:55600,s:1},
   {l:'5',e:1433,c:826,p:56200,s:1},
   {l:'6',e:1353,c:816,p:56800,s:1},
   {l:'7',e:1328,c:818,p:57300,s:1},
@@ -294,6 +294,15 @@ window.addEventListener('resize', () => {
   camera.aspect=nw/nh; camera.updateProjectionMatrix();
   renderer.setSize(nw,nh);
 });
+
+(function() {
+  const base = raw.find(d => d.l === 'Baseline');
+  const combo4 = raw.find(d => d.l === '4');
+  const pct = ((base.e - combo4.e) / base.e * 100).toFixed(1);
+  document.getElementById('m-emissions').textContent = '-' + pct + '%';
+  document.getElementById('m-emissions-sub').textContent =
+    base.e.toLocaleString() + ' → ' + combo4.e.toLocaleString() + ' kg CO2e';
+})();
 </script>
 </body>
 </html>
